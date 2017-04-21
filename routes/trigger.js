@@ -5,12 +5,12 @@ var common = require("../common");
 var config = common.config();
 AWS.config.loadFromPath(config.aws_config_path);
 var util = require("util");
-var ec2 = new AWS.EC2({region: "us-east-1"});
 
 
 var callAll = function () {
     "use strict";
 
+    var ec2 = new AWS.EC2({region: "us-east-1"});
     var params = {
         Filters: [
             {
@@ -22,7 +22,7 @@ var callAll = function () {
             {
                 Name: "tag-value",
                 Values: [
-                    "hammer-v1"
+                    "go-hammer-v1"
                 ]
             }
         ]
@@ -41,30 +41,28 @@ var callAll = function () {
 
                     var options = {
                         host: instance.PublicDnsName,
-                        path: "/?number=10000&seconds=10"
+                        path: "/trigger?number=0&seconds=10"
+                    };
+
+                    var callbackFailure = function (err) {
+
                     };
 
                     var callback = function (response) {
                         var str = "";
 
-                        // console.log("mk2");
-                        //another chunk of data has been recieved, so append it to `str`
                         response.on("data", function (chunk) {
                             str += chunk;
                         });
 
-                        //the whole response has been recieved, so we just print it out here
                         response.on("end", function () {
                             console.log(Date.now() + " " + str);
                         });
                     };
 
                     var request = http.request(options, callback);
-                    request.on("error", function (err) {
-                        console.log(err);
-                        // arrExceptions.push(err);
-                        // console.log("arrExceptions.length: " + arrExceptions.length);
-                    }).end();
+                    request.setTimeout(10000, callbackFailure);
+                    request.on("error", callbackFailure).end();
                 });
             });
         }
@@ -74,9 +72,10 @@ var callAll = function () {
 router.get("/", function (req, res, next) {
     "use strict";
 
-    callAll();
     res.setHeader("content-type", "application/json");
     res.send(JSON.stringify({version: "hello"}));
+
+    callAll();
 });
 
 module.exports = router;
